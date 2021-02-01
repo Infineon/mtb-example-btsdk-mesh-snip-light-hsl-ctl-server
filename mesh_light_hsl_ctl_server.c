@@ -1,10 +1,10 @@
 /*
-* Copyright 2016-2020, Cypress Semiconductor Corporation or a subsidiary of
-* Cypress Semiconductor Corporation. All Rights Reserved.
+* Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+* an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
 *
 * This software, including source code, documentation and related
-* materials ("Software"), is owned by Cypress Semiconductor Corporation
-* or one of its subsidiaries ("Cypress") and is protected by and subject to
+* materials ("Software") is owned by Cypress Semiconductor Corporation
+* or one of its affiliates ("Cypress") and is protected by and subject to
 * worldwide patent protection (United States and foreign),
 * United States copyright laws and international treaty provisions.
 * Therefore, you may use this Software only as provided in the license
@@ -13,7 +13,7 @@
 * If no EULA applies, Cypress hereby grants you a personal, non-exclusive,
 * non-transferable license to copy, modify, and compile the Software
 * source code solely for use in connection with Cypress's
-* integrated circuit products. Any reproduction, modification, translation,
+* integrated circuit products.  Any reproduction, modification, translation,
 * compilation, or representation of this Software except as specified
 * above is prohibited without the express written permission of Cypress.
 *
@@ -115,7 +115,7 @@ wiced_bt_mesh_core_config_model_t   mesh_element1_models[] =
 {
     WICED_BT_MESH_DEVICE,
 #ifdef MESH_DFU_SUPPORTED
-    WICED_BT_MESH_MODEL_FW_DISTRIBUTOR_UPDATE_SERVER,
+    WICED_BT_MESH_MODEL_FW_UPDATE_SERVER,
 #endif
 #if REMOTE_PROVISION_SERVER_SUPPORTED
     WICED_BT_MESH_MODEL_REMOTE_PROVISION_SERVER,
@@ -317,9 +317,8 @@ void mesh_app_init(wiced_bool_t is_provisioned)
     wiced_bt_mesh_model_light_ctl_server_init(MESH_LIGHT_HSL_SERVER_ELEMENT_INDEX, mesh_light_hsl_server_message_handler, is_provisioned);
 
 #ifdef MESH_DFU_SUPPORTED
-    wiced_bt_mesh_model_fw_update_server_init(MESH_LIGHT_HSL_SERVER_ELEMENT_INDEX, is_provisioned);
-    wiced_bt_mesh_model_fw_distribution_server_init();
-    wiced_bt_mesh_model_blob_transfer_server_init(MESH_LIGHT_HSL_SERVER_ELEMENT_INDEX);
+    wiced_bt_mesh_model_fw_update_server_init("");
+    wiced_bt_mesh_model_blob_transfer_server_init(WICED_BT_MESH_FW_TRANSFER_MODE_PULL);
 #endif
 }
 
