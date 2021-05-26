@@ -317,7 +317,7 @@ void mesh_app_init(wiced_bool_t is_provisioned)
     wiced_bt_mesh_model_light_ctl_server_init(MESH_LIGHT_HSL_SERVER_ELEMENT_INDEX, mesh_light_hsl_server_message_handler, is_provisioned);
 
 #ifdef MESH_DFU_SUPPORTED
-    wiced_bt_mesh_model_fw_update_server_init("");
+    wiced_bt_mesh_model_fw_update_server_init();
     wiced_bt_mesh_model_blob_transfer_server_init(WICED_BT_MESH_FW_TRANSFER_MODE_PULL);
 #endif
 }
