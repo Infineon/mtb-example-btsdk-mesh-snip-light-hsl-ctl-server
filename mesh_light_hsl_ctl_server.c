@@ -486,18 +486,13 @@ void mesh_app_fast_power_off_execute(void)
     {
         WICED_BT_TRACE("reset: write_nvram failed. result:%x\n", result);
     }
-    else if (wiced_init_timer(&mesh_app_fast_power_off_timer, mesh_app_fast_power_off_timer_cb, 0, WICED_SECONDS_TIMER) != WICED_SUCCESS)
-    {
-        WICED_BT_TRACE("reset: init_timer failed\n");
-    }
-    else if (wiced_start_timer(&mesh_app_fast_power_off_timer, MESH_APP_FAST_POWER_OFF_TIMEOUT_IN_SECONDS) != WICED_SUCCESS)
-    {
-        WICED_BT_TRACE("reset: init_timer failed\n");
-    }
     else
     {
-        WICED_BT_TRACE("reset: cnt:%d\n", cnt);
+        wiced_init_timer(&mesh_app_fast_power_off_timer, mesh_app_fast_power_off_timer_cb, 0, WICED_SECONDS_TIMER);
+        wiced_start_timer(&mesh_app_fast_power_off_timer, MESH_APP_FAST_POWER_OFF_TIMEOUT_IN_SECONDS);
     }
+
+    WICED_BT_TRACE("reset: cnt:%d\n", cnt);
 }
 
 
