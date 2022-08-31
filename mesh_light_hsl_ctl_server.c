@@ -78,7 +78,6 @@ extern wiced_bt_cfg_settings_t wiced_bt_cfg_settings;
 
 #define MESH_PID                0x300A
 #define MESH_VID                0x0002
-#define MESH_CACHE_REPLAY_SIZE  0x0008
 
 /******************************************************
  *          Structures
@@ -91,14 +90,14 @@ static void mesh_app_init(wiced_bool_t is_provisioned);
 
 static void mesh_light_hsl_server_message_handler(uint8_t element_idx, uint16_t event, void *p_data);
 static void mesh_light_hsl_server_status_changed(uint8_t element_idx, uint8_t *p_data, uint32_t length);
-static void mesh_light_hsl_process_set(uint8_t element_idx, wiced_bt_mesh_light_hsl_status_data_t *p_status);
+static void mesh_light_hsl_process_status(uint8_t element_idx, wiced_bt_mesh_light_hsl_status_data_t *p_status);
 static void mesh_light_ctl_server_status_changed(uint8_t element_idx, uint8_t *p_data, uint32_t length);
-static void mesh_light_ctl_process_set(uint8_t element_idx, wiced_bt_mesh_light_ctl_status_data_t *p_data);
+static void mesh_light_ctl_process_status(uint8_t element_idx, wiced_bt_mesh_light_ctl_status_data_t *p_data);
 static void mesh_app_fast_power_off_execute(void);
 
 #ifdef HCI_CONTROL
-static void mesh_light_hsl_hci_event_send_set(wiced_bt_mesh_hci_event_t *p_hci_event, wiced_bt_mesh_light_hsl_set_t *p_data);
-static void mesh_light_ctl_hci_event_send_set(wiced_bt_mesh_hci_event_t *p_hci_event, wiced_bt_mesh_light_ctl_set_t *p_data);
+static void mesh_light_hsl_hci_event_send_status(uint8_t element_idx, wiced_bt_mesh_light_hsl_status_data_t *p_data);
+static void mesh_light_ctl_hci_event_send_status(uint8_t element_idx, wiced_bt_mesh_light_ctl_status_data_t *p_data);
 #endif
 
 /******************************************************
@@ -212,7 +211,6 @@ wiced_bt_mesh_core_config_t  mesh_config =
     .company_id         = MESH_COMPANY_ID_CYPRESS,                  // Company identifier assigned by the Bluetooth SIG
     .product_id         = MESH_PID,                                 // Vendor-assigned product identifier
     .vendor_id          = MESH_VID,                                 // Vendor-assigned product version identifier
-    .replay_cache_size  = MESH_CACHE_REPLAY_SIZE,                   // Number of replay protection entries, i.e. maximum number of mesh devices that can send application messages to this device.
 #if defined(LOW_POWER_NODE) && (LOW_POWER_NODE == 1)
     .features           = WICED_BT_MESH_CORE_FEATURE_BIT_LOW_POWER, // A bit field indicating the device features. In Low Power mode no Relay, no Proxy and no Friend
     .friend_cfg         =                                           // Empty Configuration of the Friend Feature
@@ -330,20 +328,12 @@ void mesh_light_hsl_server_message_handler(uint8_t element_idx, uint16_t event, 
 
     switch (event)
     {
-    case WICED_BT_MESH_LIGHT_HSL_SET:
-#if defined HCI_CONTROL
-//        if ((p_hci_event = wiced_bt_mesh_create_hci_event(p_event)) != NULL)
-//            mesh_light_hsl_hci_event_send_set(p_hci_event, (wiced_bt_mesh_light_hsl_set_t *)p_data);
-#endif
-        mesh_light_hsl_process_set(element_idx, (wiced_bt_mesh_light_hsl_status_data_t *)p_data);
+    case WICED_BT_MESH_LIGHT_HSL_STATUS:
+        mesh_light_hsl_process_status(element_idx, (wiced_bt_mesh_light_hsl_status_data_t *)p_data);
         break;
 
-    case WICED_BT_MESH_LIGHT_CTL_SET:
-#if defined HCI_CONTROL
-//        if ((p_hci_event = wiced_bt_mesh_create_hci_event(p_event)) != NULL)
-//            mesh_light_ctl_hci_event_send_set(p_hci_event, (wiced_bt_mesh_light_ctl_status_t *)p_data);
-#endif
-        mesh_light_ctl_process_set(element_idx, (wiced_bt_mesh_light_ctl_status_data_t *)p_data);
+    case WICED_BT_MESH_LIGHT_CTL_STATUS:
+        mesh_light_ctl_process_status(element_idx, (wiced_bt_mesh_light_ctl_status_data_t *)p_data);
         break;
 
     default:
@@ -418,10 +408,14 @@ void mesh_light_hsl_server_status_changed(uint8_t element_idx, uint8_t *p_data, 
 /*
  * Command from the HSL, Lightness, Generic Level or On/Off client received to set the new level
  */
-void mesh_light_hsl_process_set(uint8_t element_idx, wiced_bt_mesh_light_hsl_status_data_t *p_status)
+void mesh_light_hsl_process_status(uint8_t element_idx, wiced_bt_mesh_light_hsl_status_data_t *p_status)
 {
     WICED_BT_TRACE("light hsl srv set present light:%d hue:%d sat:%d remaining time:%d\n",
             p_status->present.lightness, p_status->present.hue, p_status->present.saturation, p_status->remaining_time);
+
+#if defined HCI_CONTROL
+    mesh_light_hsl_hci_event_send_status(element_idx, (wiced_bt_mesh_light_hsl_status_data_t *)p_status);
+#endif
 }
 
 /*
@@ -442,10 +436,14 @@ void mesh_light_ctl_server_status_changed(uint8_t element_idx, uint8_t *p_data, 
 /*
  * Command from the level client is received to set the new level
  */
-void mesh_light_ctl_process_set(uint8_t element_idx, wiced_bt_mesh_light_ctl_status_data_t *p_status)
+void mesh_light_ctl_process_status(uint8_t element_idx, wiced_bt_mesh_light_ctl_status_data_t *p_status)
 {
     WICED_BT_TRACE("light ctl srv set light:%d temp:%d UV:%d trans remaining:%d\n",
             p_status->present.lightness, p_status->present.temperature, p_status->present.delta_uv, p_status->remaining_time);
+
+#if defined HCI_CONTROL
+    mesh_light_ctl_hci_event_send_status(element_idx, (wiced_bt_mesh_light_ctl_status_data_t *)p_status);
+#endif
 }
 
 // It is called if 5 seconds passed since start - then delete reset NVRAM ID to count power ons(resets) frmom 0
@@ -498,35 +496,42 @@ void mesh_app_fast_power_off_execute(void)
 
 #ifdef HCI_CONTROL
 /*
- * Send Level Set event over transport
+ * Send Ligt HSL Status event over transport
  */
-void mesh_light_hsl_hci_event_send_set(wiced_bt_mesh_hci_event_t *p_hci_event, wiced_bt_mesh_light_hsl_set_t *p_data)
+void mesh_light_hsl_hci_event_send_status(uint8_t element_idx, wiced_bt_mesh_light_hsl_status_data_t* p_data)
+{
+    wiced_bt_mesh_hci_event_t* p_hci_event = wiced_bt_mesh_alloc_hci_event(element_idx);
+    if (p_hci_event)
 {
     uint8_t *p = p_hci_event->data;
 
-    UINT16_TO_STREAM(p, p_data->target.lightness);
-    UINT16_TO_STREAM(p, p_data->target.hue);
-    UINT16_TO_STREAM(p, p_data->target.saturation);
-    UINT32_TO_STREAM(p, p_data->transition_time);
-    UINT16_TO_STREAM(p, p_data->delay);
+        UINT16_TO_STREAM(p, p_data->present.lightness);
+        UINT16_TO_STREAM(p, p_data->present.hue);
+        UINT16_TO_STREAM(p, p_data->present.saturation);
+        UINT32_TO_STREAM(p, p_data->remaining_time);
 
-    mesh_transport_send_data(HCI_CONTROL_MESH_EVENT_LIGHT_HSL_SET, (uint8_t *)p_hci_event, (uint16_t)(p - (uint8_t *)p_hci_event));
+        mesh_transport_send_data(HCI_CONTROL_MESH_EVENT_LIGHT_HSL_STATUS, (uint8_t*)p_hci_event, (uint16_t)(p - (uint8_t*)p_hci_event));
+    }
 }
 
 /*
- * Send Light CTL Set event over transport
+ * Send Power Level Status event over transport
  */
-void mesh_light_ctl_hci_event_send_set(wiced_bt_mesh_hci_event_t *p_hci_event, wiced_bt_mesh_light_ctl_set_t *p_data)
+void mesh_light_ctl_hci_event_send_status(uint8_t element_idx, wiced_bt_mesh_light_ctl_status_data_t* p_data)
+{
+    wiced_bt_mesh_hci_event_t* p_hci_event = wiced_bt_mesh_alloc_hci_event(element_idx);
+    if (p_hci_event)
 {
     uint8_t *p = p_hci_event->data;
 
+        UINT16_TO_STREAM(p, p_data->present.lightness);
+        UINT16_TO_STREAM(p, p_data->present.temperature);
     UINT16_TO_STREAM(p, p_data->target.lightness);
     UINT16_TO_STREAM(p, p_data->target.temperature);
-    UINT16_TO_STREAM(p, p_data->target.delta_uv);
-    UINT32_TO_STREAM(p, p_data->transition_time);
-    UINT16_TO_STREAM(p, p_data->delay);
+        UINT32_TO_STREAM(p, p_data->remaining_time);
 
-    mesh_transport_send_data(HCI_CONTROL_MESH_EVENT_LIGHT_CTL_SET, (uint8_t *)p_hci_event, (uint16_t)(p - (uint8_t *)p_hci_event));
+        mesh_transport_send_data(HCI_CONTROL_MESH_EVENT_LIGHT_CTL_STATUS, (uint8_t*)p_hci_event, (uint16_t)(p - (uint8_t*)p_hci_event));
+    }
 }
 
 #endif
